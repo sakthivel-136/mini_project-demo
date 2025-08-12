@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Disaster Relief Resource Hub — Tamil Nadu (Demo)</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <!-- MarkerCluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        header { padding: 10px; background: #2b6cb0; color: white; text-align: center; }
+        #map { height: 78vh; }
+        #controls { padding: 10px; display:flex; gap:8px; align-items:center; background:#f7fafc; }
+        input, select, button { padding: 8px; font-size:14px; }
+        #resourceList { height: 18vh; overflow:auto; padding:10px; background:#fff; border-top:1px solid #eee; }
+        .resource-item { padding:6px; border-bottom:1px solid #eee; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h2>Disaster Relief Resource Hub — Tamil Nadu (Demo)</h2>
+</header>
+
+<div id="controls">
+    <label>Filter type:
+        <select id="filterType">
+            <option value="All">All</option>
+            <option value="Food">Food</option>
+            <option value="Water">Water</option>
+            <option value="Shelter">Shelter</option>
+            <option value="Medical">Medical</option>
+        </select>
+    </label>
+
+    <label>City search:
+        <input id="citySearch" placeholder="Type city name (e.g., Madurai)" />
+    </label>
+
+    <button id="applyBtn">Apply</button>
+    <button id="resetBtn">Reset</button>
+
+    <div style="margin-left:auto;">
+        Total pins: <span id="totalCount">0</span>
+    </div>
+</div>
+
+<div id="map"></div>
+
+<div id="resourceList"><strong>Resources (click marker to view contact)</strong></div>
+
+<!-- Resources generator (creates `resources` array) -->
+<script src="resources.js"></script>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<!-- MarkerCluster -->
+<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+
+<!-- Main script -->
+<script src="script.js"></script>
+
+</body>
+</html>
