@@ -1,97 +1,71 @@
 // script.js
-
-// Initialize map centered roughly on Tamil Nadu
 const map = L.map('map').setView([11.0, 78.0], 7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+const markerCluster = L.markerClusterGroup();
+let allMarkers = [];
 
-// Add OSM tile layer
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-}).addTo(map);
-
-// marker cluster group
-let markersCluster = L.markerClusterGroup();
-let markerList = []; // keep track of marker references
-
-// create markers from global `resources`
-function loadMarkers(data) {
-    markersCluster.clearLayers();
-    markerList = [];
-
-    data.forEach((res, idx) => {
-        const popupHtml = `
-            <strong>${res.name}</strong><br/>
-            <em>${res.type}</em><br/>
-            City: ${res.city}<br/>
-            Contact: ${res.contactName} <br/>
-            Phone: <a href="tel:${res.contactPhone}">${res.contactPhone}</a>
-        `;
-
-        const marker = L.marker([res.lat, res.lng]);
-        marker.bindPopup(popupHtml);
-        markerList.push({ marker, res });
-        markersCluster.addLayer(marker);
-    });
-
-    map.addLayer(markersCluster);
-    document.getElementById('totalCount').innerText = data.length;
-    renderList(data);
+function iconHTML(type){
+  if(type==="Food") return `<div class="marker-div icon-food"><i class="fa-solid fa-utensils"></i></div>`;
+  if(type==="Water") return `<div class="marker-div icon-water"><i class="fa-solid fa-droplet"></i></div>`;
+  if(type==="Shelter") return `<div class="marker-div icon-shelter"><i class="fa-solid fa-house"></i></div>`;
+  return `<div class="marker-div icon-med"><i class="fa-solid fa-briefcase-medical"></i></div>`;
 }
 
-// render list of visible resources (simple)
-function renderList(data) {
-    const container = document.getElementById('resourceList');
-    container.innerHTML = "<strong>Resources (click marker to view contact)</strong>";
-    data.slice(0, 200).forEach(r => { // show up to 200 in list to avoid huge DOM
-        const div = document.createElement('div');
-        div.className = 'resource-item';
-        div.innerHTML = `<strong>${r.name}</strong> (${r.type}) — ${r.city} — ${r.contactName} — <a href="tel:${r.contactPhone}">${r.contactPhone}</a>`;
-        container.appendChild(div);
-    });
-    if (data.length > 200) {
-        const more = document.createElement('div');
-        more.style.padding = '6px';
-        more.style.fontStyle = 'italic';
-        more.innerText = `... and ${data.length - 200} more`;
-        container.appendChild(more);
-    }
+function createMarkers(data){
+  markerCluster.clearLayers();
+  allMarkers = [];
+  data.forEach(r=>{
+    const icon = L.divIcon({html:iconHTML(r.type),className:'',iconSize:[42,42]});
+    const marker = L.marker([r.lat,r.lng],{icon});
+    const popup = `<div class="popup-title">${r.name}</div>
+    <em>${r.type}</em> — ${r.city}<br>
+    Contact: <strong>${r.contactName}</strong><br>
+    <a class="call-large" href="tel:${r.contactPhone}"><i class="fa-solid fa-phone"></i> Call ${r.contactPhone}</a>`;
+    marker.bindPopup(popup);
+    markerCluster.addLayer(marker);
+    allMarkers.push({marker,data:r});
+  });
+  map.addLayer(markerCluster);
+  document.getElementById('totalCount').innerText = data.length;
+  renderList(data);
 }
 
-// initial load (window.resources is from resources.js)
-if (window.resources && Array.isArray(window.resources)) {
-    loadMarkers(window.resources);
-} else {
-    alert("No resources found. Make sure resources.js is loaded and defines window.resources.");
+function renderList(data){
+  const c = document.getElementById('listContainer');
+  c.innerHTML = '';
+  data.forEach(r=>{
+    const div=document.createElement('div'); div.className='resource-item';
+    const iconBox=document.createElement('div'); iconBox.className='icon-box';
+    if(r.type==="Food") iconBox.classList.add('icon-food');
+    if(r.type==="Water") iconBox.classList.add('icon-water');
+    if(r.type==="Shelter") iconBox.classList.add('icon-shelter');
+    if(r.type==="Medical") iconBox.classList.add('icon-med');
+    iconBox.innerHTML = iconHTML(r.type);
+    const meta=document.createElement('div'); meta.className='rmeta';
+    meta.innerHTML=`<strong>${r.name}</strong><br><small>${r.type} • ${r.city}</small><br>${r.contactName} — <a href="tel:${r.contactPhone}">${r.contactPhone}</a>`;
+    const call=document.createElement('button'); call.className='call-btn'; call.innerHTML='<i class="fa-solid fa-phone"></i>';
+    call.onclick=(e)=>{e.stopPropagation(); window.location.href=`tel:${r.contactPhone}`;};
+    div.append(iconBox,meta,call);
+    div.onclick=()=>{ const f=allMarkers.find(m=>m.data===r); if(f){ map.setView([r.lat,r.lng],13); f.marker.openPopup();}};
+    c.appendChild(div);
+  });
 }
 
-// filter UI
-document.getElementById('applyBtn').addEventListener('click', () => {
-    applyFilter();
-});
-document.getElementById('resetBtn').addEventListener('click', () => {
-    document.getElementById('filterType').value = 'All';
-    document.getElementById('citySearch').value = '';
-    loadMarkers(window.resources);
-});
+document.getElementById('applyBtn').onclick=()=>{
+  const type=document.getElementById('filterType').value;
+  const city=document.getElementById('citySearch').value.trim().toLowerCase();
+  const filtered=window.resources.filter(r=>{
+    const okType = (type==='All')||r.type===type;
+    const okCity = city===''||r.city.toLowerCase().includes(city);
+    return okType && okCity;
+  });
+  createMarkers(filtered);
+};
 
-function applyFilter() {
-    const type = document.getElementById('filterType').value;
-    const cityQ = document.getElementById('citySearch').value.trim().toLowerCase();
+document.getElementById('resetBtn').onclick=()=>{
+  document.getElementById('filterType').value='All';
+  document.getElementById('citySearch').value='';
+  createMarkers(window.resources);
+};
 
-    const filtered = window.resources.filter(r => {
-        const typeOK = (type === 'All') ? true : (r.type === type);
-        const cityOK = cityQ === '' ? true : (r.city.toLowerCase().indexOf(cityQ) !== -1);
-        return typeOK && cityOK;
-    });
-
-    // clear existing markers then add filtered ones
-    // reset view if filtered small set
-    if (filtered.length > 0) {
-        loadMarkers(filtered);
-        const first = filtered[0];
-        map.setView([first.lat, first.lng], Math.max(8, Math.min(12, 10)));
-    } else {
-        markersCluster.clearLayers();
-        document.getElementById('totalCount').innerText = 0;
-        document.getElementById('resourceList').innerHTML = "<strong>No resources match your filter.</strong>";
-    }
-}
+createMarkers(window.resources);
